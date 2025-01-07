@@ -8,8 +8,10 @@ class TelegramListener < Redmine::Hook::Listener
 		issue = context[:issue]
 
     users = []
-    users.push(issue.author) if issue.author != issue.assigned_to
+    users.push(issue.author)
     users.push(issue.assigned_to) if issue.assigned_to
+
+    users = users.uniq
 
 		msg = "<b>[#{escape issue.project}]</b>\n<a href='#{object_url issue}'>#{escape issue}</a>\n<b>#{escape issue.author}</b> #{l(:field_created_on)}\n"
 		Rails.logger.info("TELEGRAM NEW ISSUE [#{issue.project.name} - #{issue.tracker.name} ##{issue.id}] (#{issue.status.name}) #{issue.subject}")
@@ -36,7 +38,7 @@ class TelegramListener < Redmine::Hook::Listener
 			:short => true
 		} if Setting.plugin_redmine_telegram_email['display_watchers'] == 'yes'
 
-    users_processing users, issue, msg, attachment
+    users_processing users, issue.author, issue, msg, attachment
 
 	end
 
@@ -47,7 +49,7 @@ class TelegramListener < Redmine::Hook::Listener
 		Rails.logger.info("TELEGRAM CONTENT #{context} WATCHERS #{issue.watcher_users} ASSIGNED_TO #{issue.assigned_to} ISSUEAUTHOR #{issue.author}") if $DEBUG == 1
 
     users = []
-    users.push(issue.author) if issue.author != issue.assigned_to
+    users.push(issue.author)
     users.push(issue.assigned_to) if issue.assigned_to
 
     issue.watcher_users.each do |watcher|
@@ -63,14 +65,14 @@ class TelegramListener < Redmine::Hook::Listener
     attachment[:text] = escape journal.notes if journal.notes
     attachment[:fields] = journal.details.map { |d| detail_to_field d }
 
-    users_processing users, issue, msg, attachment
+    users_processing users, journal.user, issue, msg, attachment
 
 	end
 
-  def users_processing(users, issue, msg, attachment)
+  def users_processing(users, updater_user, issue, msg, attachment)
     users.each do |user|
       Rails.logger.info("TELEGRAM USER ARRAY NAME: #{user}") if $DEBUG == 1
-      next if user.id.to_i == issue.author_id.to_i and Setting.plugin_redmine_telegram_email[:selfupdate_dont_send] == '1'
+      next if user.id.to_i == updater_user.to_i and Setting.plugin_redmine_telegram_email[:selfupdate_dont_send] == '1'
       telegram_chat_id = 0
       telegram_disable = 0
       user.custom_field_values.each do |telegram_field|
