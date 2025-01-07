@@ -72,7 +72,7 @@ class TelegramListener < Redmine::Hook::Listener
   def users_processing(users, updater_user, issue, msg, attachment)
     users.each do |user|
       Rails.logger.info("TELEGRAM USER ARRAY NAME: #{user}") if $DEBUG == 1
-      next if user.id.to_i == updater_user.to_i and Setting.plugin_redmine_telegram_email[:selfupdate_dont_send] == '1'
+      next if user.id.to_i == updater_user.id.to_i and Setting.plugin_redmine_telegram_email[:selfupdate_dont_send] == '1'
       telegram_chat_id = 0
       telegram_disable = 0
       user.custom_field_values.each do |telegram_field|
